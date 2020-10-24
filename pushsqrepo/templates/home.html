@@ -1,0 +1,20 @@
+{% extends 'layout.html' %}
+{% block content %}
+	<form class="mt-3" method="POST" action="">
+		{{form.hidden_tag()}}
+  		<div class="form-group w-75">
+    		<h5 class="mt-3">Search packages / repositories</h5>
+    		{% if form.name.errors %}
+    			{{form.name(class="form-control form-control-sm is-invalid")}}
+    		{% else %}
+    			{{form.name(class="form-control form-control-sm ",placeholder="package / repository name")}}
+    		{% endif %}
+    		<small class="form-text text-muted ">Repository search starts with <b>repo:repository_name</b></small>
+    		<span class="badge badge-dark rounded-0 mt-3">Packages</span><span class="badge badge-info rounded-0 mt-3">{{len_packages}}</span>
+    		<span class="badge badge-dark rounded-0 mt-3">Repositories</span><span class="badge badge-info rounded-0 mt-3">{{len_repo}}</span>
+  		</div>
+
+  		{{form.submit(class="btn btn-primary btn-sm")}}
+	</form>
+
+{% endblock content %}	

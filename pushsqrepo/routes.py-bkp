@@ -1,0 +1,128 @@
+import os
+from flask import render_template, url_for, flash, redirect, request, abort, session,jsonify
+from pushsqrepo import app, db, bcrypt
+from pushsqrepo.models import User,Repo,Packages
+from pushsqrepo.forms import Search_Package_Repo_Form
+import json
+import pathlib
+import shutil
+
+#Home Page Repository
+@app.route('/')
+def home():
+	form = Search_Package_Repo_Form()
+	len_repo = len(Repo.query.all())
+	len_packages = len(Packages.query.all())
+
+	#Validate search
+	if form.validate_on_submit():
+
+		#Search on
+		search_on = form.search_on.data
+		
+		#check in package db
+		pkg_search = form.name.data
+		package_search_count = Packages.query.filter(Packages.pkg_name.like(f'%{pkg_search}%')).all()
+
+		#check in repo db
+		repo_search = form.name.data
+		repo_search_count = Repo.query.filter(Repo.repo_name.like(f'%{repo_search}%')).all()
+
+		if package_search_count and repo_search_count == 0:
+			return redirect(url_for('search',count=0,search_for=''))
+
+	return render_template('home.html',title='Search',form=form,len_repo=len_repo,len_packages=len_packages)
+
+
+#Validte new repo
+@app.route('/validate_reponame',methods=['POST'])
+def validate_repo():
+	data=request.get_json()
+	#check if repo is available in database
+	repo_db = Repo.query.filter_by(repo_name=data['reponame']).first()
+
+	if repo_db is not None:
+		return f"pass"
+	else:
+		return f"fail"
+
+#Create new repo
+@app.route('/create_new_repo',methods=['POST'])
+def create_new_repo():
+	data = request.get_json()
+	try:
+		#Update database
+		os.makedirs('/var/lib/pushsqrepo/repo/repo:'+data['reponame'],exist_ok=True)
+		adminuser = User.query.filter_by(username='admin').first()
+		repo = Repo(repo_name=data['reponame'],repo_category=data['category'],user=adminuser)
+		db.session.add(repo)
+		db.session.commit()
+		return f"pass"
+	except Exception as e:
+		print(e)
+		shutil.rmtree('/var/lib/pushsqrepo/repo/repo:'+data['reponame'])
+		return f"fail"
+
+#Search repository
+@app.route('/search_repo',methods=['POST'])
+def search_repo():
+	data = request.get_json()
+	search_name = data['reponame']
+	repo_search_dict = {}
+	#check database
+	repocheck = Repo.query.filter(Repo.repo_name.like(f'%{search_name}%')).all()
+	total_check = len(repocheck)
+
+	for i in repocheck:
+		repo_search_dict[i.repo_name] = i.repo_category
+
+	return jsonify({'Total search result':total_check,'Result':repo_search_dict})
+
+#Validate admin pass
+@app.route('/validate_admin',methods=['POST'])
+def validate_admin():
+	data = request.get_json()
+	admin_check_pass = User.query.filter(User.password==data['adminpass']).first()
+	if admin_check_pass:
+		return f"pass"
+	else:
+		return f"fail"
+
+#Search result
+@app.route('/search/<int:count>/<search_for>',methods=['POST','GET'])
+def search():
+
+	return render_template('search.html',title='Search')
+
+
+#Delete Repository
+@app.route('/delete_repo',methods=['POST'])
+def delete_repo():
+
+	data = request.get_json()
+	repo_del = Repo.query.filter_by(repo_name=data['reponame']).first()
+	db.session.delete(repo_del)
+	db.session.commit()
+
+	#Remove repo directory
+	shutil.rmtree('/var/lib/pushsqrepo/repo/repo:'+data['reponame'])
+
+	return f"pass"
+
+
+
+#Check if User is valid or not
+@app.route('/validate_user',methods=['POST'])
+def validate_user():
+
+	data=request.get_json()
+
+	#Check if user is available in database
+	user = User.query.filter_by(username=data['username']).first()
+
+	if user is None:
+		return f"fail"
+	else:
+		return f"pass"
+
+

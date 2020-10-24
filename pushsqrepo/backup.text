@@ -1,0 +1,115 @@
+#INIT, initialize the Push.sq Repo
+def init():
+
+	#check if .pushsq folder is already avilable
+	#if not then create new
+	current_path = os.getcwd()
+	if os.path.isdir(current_path+'.pushsq'):
+		print("Push Repository is already initialize")
+		time.sleep(2)
+	else:
+		print ("Please wait initializing the Push Repository\n")
+		time.sleep(2)
+		path = os.path.join(current_path,'.pushsq')
+		os.mkdir(path)
+		print("Push Repository initialized successfully")
+
+#Create new repo
+def createrepo():
+	"""only admin can create repo"""
+	"""ask for repository name """
+	print("Push.sq Version Control System")
+	print("===============================")
+	print("""[ \u263a  ] Only Admin login can create a new repository.\n[ \u0021\u0021 ] New repository name should be in small case and space in name not allowed.""")
+	print(" ")
+	new_repo_name = input("Enter new repository name : ")
+	repo_category = input("Enter new repository category : ")
+
+	#Check if new repo name is in small case
+	if new_repo_name.islower() == False or " " in new_repo_name:
+		print("""[ \u00D7 ] Repository name is case-sensitive""")
+		sys.exit()
+	else:
+		#check if new repo is avilable
+		url = "http://localhost:5000/validate_repo_name"
+		data = {'reponame':new_repo_name}
+		headers = {'Content-Type': 'application/json'}
+		r = requests.post(url,data=json.dumps(data),headers=headers)
+
+		if r.text == "pass":
+
+			admin_pass = getpass.getpass("Password admin@pushsqrepo : ")
+			url = "http://localhost:5000/validate_admin"
+			data = {'adminpass':admin_pass}
+			r = requests.post(url,data=json.dumps(data),headers=headers)
+
+			if r.text == "pass":
+				print(f"Please wait creating repository for {new_repo_name}")
+				url = "http://localhost:5000/create_new_repo"
+				data = {'reponame':new_repo_name,'category':repo_category}
+				r = requests.post(url,data=json.dumps(data),headers=headers)
+
+				if r.text == "pass":
+					print(f"""[ \u2713 ] {new_repo_name} repository created successfully""")
+				else:
+					print("""[ \u00D7 ] Error while creating repository""")
+					sys.exit()
+			else:
+				print("""[ \u00D7 ] Error invalid admin password""")
+				sys.exit()
+		else:
+			
+			print(f"""[ \u00D7 ] {new_repo_name} is already exists in repository""")
+			sys.exit()
+						
+					
+
+#Query Reposiroty name
+def query_repo():
+	print("Push.sq Version Control System")
+	print("===============================")
+	print("""[ \u0021\u0021 ] Repository name should be in small case and space in name not allowed.""")
+	print(" ")
+	repo_search = input("Enter repository name : ")
+	if repo_search.islower() == False or " " in repo_search:
+		print("""[ \u00D7 ] Repository name is case-sensitive""")
+		sys.exit()
+	else:
+		url = "http://localhost:5000/search_repo"
+		data = {'reponame':repo_search}
+		headers = {'Content-Type': 'application/json'}
+		r = requests.post(url,data=json.dumps(data),headers=headers)
+		print(r.text)
+
+#Delete Repository
+def delete_repo():
+	print("Push.sq Version Control System")
+	print("===============================")
+	print("""[ \u263a  ] Only Admin login can delete repository.\n[ \u0021\u0021 ] Repository name should be in small case and space in name not allowed.""")
+	print(" ")
+	repo_del_name = input("Enter repository name : ")
+
+	if repo_del_name.islower() == False or " " in repo_del_name:
+		print("""[ \u00D7 ] Repository name is case-sensitive""")
+		sys.exit()
+	else:
+		url = "http://localhost:5000/validate_reponame"
+		data = {'reponame':repo_del_name}
+		headers = {'Content-Type': 'application/json'}
+		r = requests.post(url,data=json.dumps(data),headers=headers)
+
+		if r.text == "pass":
+			print(f"""[ \u2713 ] {repo_del_name} is available in repository""")
+			admin_pass = getpass.getpass("Password admin@pushsqrepo : ")
+			url = "http://localhost:5000/validate_admin"
+			data = {'adminpass':admin_pass}
+			r = requests.post(url,data=json.dumps(data),headers=headers)
+
+			if r.text == "pass":
+				url = "http://localhost:5000/delete_repo"
+				data = {'reponame':repo_del_name}
+				r = requests.post(url,data=json.dumps(data),headers=headers)
+				print(f"""[ \u2713 ] {repo_del_name} repository removed successfully""")
+			else:
+				print("""[ \u00D7 ] Error invalid admin password""")
+				sys.exit()
